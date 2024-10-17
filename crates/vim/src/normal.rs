@@ -185,6 +185,8 @@ impl Vim {
                 error!("Unexpected normal mode motion operator: {:?}", operator)
             }
         }
+
+        self.exit_temporary_normal(cx);
     }
 
     pub fn normal_object(&mut self, object: Object, cx: &mut ViewContext<Self>) {
@@ -235,6 +237,7 @@ impl Vim {
             }
         }
         self.clear_operator(cx);
+        self.exit_temporary_normal(cx);
         if let Some(operator) = waiting_operator {
             self.push_operator(operator, cx);
         }
@@ -476,6 +479,13 @@ impl Vim {
                 }
             });
         });
+    }
+
+    pub fn exit_temporary_normal(&mut self, cx: &mut ViewContext<Self>) {
+        if self.temp_mode {
+            self.temp_mode = false;
+            self.switch_mode(Mode::Insert, true, cx);
+        }
     }
 }
 #[cfg(test)]

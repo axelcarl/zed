@@ -146,6 +146,7 @@ impl editor::Addon for VimAddon {
 pub(crate) struct Vim {
     pub(crate) mode: Mode,
     pub last_mode: Mode,
+    pub temp_mode: bool,
 
     /// pre_count is the number before an operator is specified (3 in 3d2d)
     pre_count: Option<usize>,
@@ -196,6 +197,7 @@ impl Vim {
         cx.new_view(|cx| Vim {
             mode: Mode::Normal,
             last_mode: Mode::Normal,
+            temp_mode: false,
             pre_count: None,
             post_count: None,
             operator_stack: Vec::new(),
@@ -433,6 +435,16 @@ impl Vim {
         let prior_tx = self.current_tx;
         self.last_mode = last_mode;
         self.mode = mode;
+
+        if self.temp_mode && mode == Mode::Visual {
+            self.temp_mode = true;
+        } else if self.temp_mode && mode == Mode::Normal {
+            self.temp_mode = false;
+            self.mode = Mode::Insert;
+        } else {
+            self.temp_mode = false;
+        }
+
         self.operator_stack.clear();
         self.selected_register.take();
         if mode == Mode::Normal || mode != last_mode {
@@ -1058,6 +1070,8 @@ impl Vim {
                 }
             }
         }
+
+        self.exit_temporary_normal(cx);
     }
 
     fn sync_vim_settings(&mut self, cx: &mut ViewContext<Self>) {
